@@ -1,0 +1,26 @@
+meeting notes:
+
+12/7
+
+Pragmatics, RSA - rational speech acts model
+remove need to build semantics by hand, learn semantics -> plug to RSA -> predict human usage
+watch task where two people chat via window, describe actions to someone (pick a box)
+katherine, robert presented
+relies on deep amortized inference
+
+
+smaller projects:
+consult: daniel, paul
+benchmarking methods
+swapping otu tensor backend for somethign more efficient - (best ways tp do that?)
+bind directly to torch backend, node ffi 
+efficiency of tensorflow? compared to torch 
+
+time series:
+hmm - discrete
+ filter- continuous
+ using autoencoders - deep common filter: filter.  transition functio is deepnet LSTM-like. recognition model that learns inference. - can write in webppl. will it work?
+
+try running inference on time series models - how well does it work and scale?
+consult: paul, ndg
+evolution of a ecosystem, financial modeling, baseball

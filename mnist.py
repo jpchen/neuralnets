@@ -1,7 +1,8 @@
-import cPickle, gzip, numpy
+import cPickle, gzip, numpy, theano
+import theano.tensor as T
 
 # Load the dataset
-f = gzip.open('mnist.pkl.gz', 'rb')
+f = gzip.open('data/mnist.pkl.gz', 'rb')
 train_set, valid_set, test_set = cPickle.load(f)
 f.close()
 
