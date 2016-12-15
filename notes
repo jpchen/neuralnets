@@ -1,26 +1,17 @@
-meeting notes:
 
-12/7
+Frank & Goodman (2012) - I think this was the first of the RSA papers
+http://langcog.stanford.edu/papers_new/frank-2012-science.pdf
+SI at https://web.stanford.edu/~ngoodman/papers/FrankGoodman-Science2012.pdf
 
-Pragmatics, RSA - rational speech acts model
-remove need to build semantics by hand, learn semantics -> plug to RSA -> predict human usage
-watch task where two people chat via window, describe actions to someone (pick a box)
-katherine, robert presented
-relies on deep amortized inference
+Bergen et al. (2016) does a nice job laying out the framework
+http://cocolab.stanford.edu/papers/BergenLevyGoodman-LexUnc.pdf
+
+http://cocolab.stanford.edu/papers/GoodmanFrank2016-TICS.pdf.
+
+If you prefer a hands-on approach, the materials for Noah's class are good, and you can see RSA models in the ESSLI course notes (as well as in the pragmatics chapter on Probmods - v2): http://cocolab.stanford.edu/psych204-fall2016.html (final week - section on natural language pragmatics and semantics, see esp. the ESSLI course notes).
 
 
-smaller projects:
-consult: daniel, paul
-benchmarking methods
-swapping otu tensor backend for somethign more efficient - (best ways tp do that?)
-bind directly to torch backend, node ffi 
-efficiency of tensorflow? compared to torch 
-
-time series:
-hmm - discrete
- filter- continuous
- using autoencoders - deep common filter: filter.  transition functio is deepnet LSTM-like. recognition model that learns inference. - can write in webppl. will it work?
-
-try running inference on time series models - how well does it work and scale?
-consult: paul, ndg
-evolution of a ecosystem, financial modeling, baseball
+WEBPPL:
+Libraries:
+http://webppl.readthedocs.io/en/master/packages.html#javascript-functions-and-libraries
+EC2: https://gist.github.com/null-a/ad8367f627403ef1b7622597caf5b314
