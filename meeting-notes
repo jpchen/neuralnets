@@ -1,5 +1,15 @@
 meeting notes:
 
+nn is a fn that uses those params, dot product of vector. nn in adnn doesnt have backend in webppl to create params. it needs to keep the state (weight matrices), see tech reqport. `nneval` not in webppl but in tech report - call the funcatin with params
+
+time series: variational inf 
+pauls writing guide programs so posterior can capture correlations. guide part is recurrent.
+implement kalman filter, get smc working
+
+laplace distr: https://github.com/probmods/webppl/issues/672
+issues label in inferences: optimized params (658). function would Take param to say which group of params to optimize. keep track of which params seen 
+
+
 12/7
 
 Pragmatics, RSA - rational speech acts model
@@ -8,18 +18,40 @@ watch task where two people chat via window, describe actions to someone (pick a
 katherine, robert presented
 relies on deep amortized inference
 
-
 smaller projects:
 consult: daniel, paul
 benchmarking methods
 swapping otu tensor backend for somethign more efficient - (best ways tp do that?)
 bind directly to torch backend, node ffi 
-efficiency of tensorflow? compared to torch 
+efficiency of tensorflow? compared to torch (do some research on this, bind to tf directly? is it computationally fit model-wise: can we indiivudllay call kernels, instea dof computing graph then running). torch is more similar - someone wrote js bindings for torch
+ADNN:
+tensor - swap this for C library instead of JS array (binded libTH, libTHC(Cuda), libTHNN libTHCUNN (Cuda)-ec2 or use stanford lab)
+ad - builds forward graph of computations for backprop (try to change as little as possible)
+nn- build nn objects. evaluate(), stores params (dont have to worry about) <- paul is working on a replacement
+opt - optimizatin methods (no change)
 
+correctness test
+speed testbed - 
+matrix multioplies
+fully connected convultion nn
+
+1. look at geometric intelligence code (dont change webppl code, just bind tensor layer)
+2. point it to libTH (std torch libraries where they used their own)
+3. find what methods are useful
+3. cuda support 
+4. make backend togglable - js tensor, cuda tensor (do for v0)
+
+adnn:
+ad: derivs, functions.js
+nn: activation.js move relu to ad (ad primitives)
+
+
+=====
 time series:
+https://arxiv.org/pdf/1605.06432v2.pdf
 hmm - discrete
  filter- continuous
- using autoencoders - deep common filter: filter.  transition functio is deepnet LSTM-like. recognition model that learns inference. - can write in webppl. will it work?
+ using autoencoders - deep common filter: filter.  transition functio is deepnet LSTM-like. RNN. recognition model that learns inference. - can write in webppl. will it work?
 
 try running inference on time series models - how well does it work and scale?
 consult: paul, ndg
