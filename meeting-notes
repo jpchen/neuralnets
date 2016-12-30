@@ -2,13 +2,21 @@ meeting notes:
 
 nn is a fn that uses those params, dot product of vector. nn in adnn doesnt have backend in webppl to create params. it needs to keep the state (weight matrices), see tech reqport. `nneval` not in webppl but in tech report - call the funcatin with params
 
-time series: variational inf 
-pauls writing guide programs so posterior can capture correlations. guide part is recurrent.
-implement kalman filter, get smc working
-
 laplace distr: https://github.com/probmods/webppl/issues/672
 issues label in inferences: optimized params (658). function would Take param to say which group of params to optimize. keep track of which params seen 
 
+===
+webppl:
+david mckai? info theory and algos
+chris bishop, kevin murphy
+coursera graphical models
+adnn - backend "automatic differentiation"
+implmentation of guides
+distributions are just js objects with md
+laplace distr: https://github.com/probmods/webppl/issues/672 -> reparameterization trick (http://blog.shakirm.com/2015/10/machine-learning-trick-of-the-day-4-reparameterisation-tricks/), restructure so AD flows better. distr implements this trick. instead of sampling from distr, sample from a normal dist, then transform it deterministaclly. base is a fixed dist you sample from, transform transforms it to the one in quesiton
+issues label in inferences: optimized params (658). function would Take param to say which group of params to optimize. keep track of which params seen when program executed and whichs hould be optimized
+https://github.com/probmods/webppl/issues/530
+look up: metropolis hastings, particle filtering
 
 12/7
 
@@ -19,6 +27,7 @@ katherine, robert presented
 relies on deep amortized inference
 
 smaller projects:
+===
 consult: daniel, paul
 benchmarking methods
 swapping otu tensor backend for somethign more efficient - (best ways tp do that?)
@@ -56,3 +65,23 @@ hmm - discrete
 try running inference on time series models - how well does it work and scale?
 consult: paul, ndg
 evolution of a ecosystem, financial modeling, baseball
+
+here's a quick attempt at sketching the basic structure of a time
+series model with a recurrent guide. it certainly won't run (of
+course), but the structure of the model is about right (similar to
+hmm/kalman filter) and i've shown one way you could add a recurrent
+guide to such a model. this will probably only make sense if you are
+comfortable with the variational autoencoder.
+https://gist.github.com/null-a/a749ea49f97c665ae3bb82dbf0476347
+
+pauls writing guide programs so posterior can capture correlations. guide part is recurrent.
+implement kalman filter, get smc working
+variational autoencder:
+https://github.com/null-a/webppl-nn/blob/master/examples/vae.wppl
+The original paper is linked from the code. it's definitely worth
+understanding this, since it's a prototypical example of doing
+"amortized variational inference", and you can kinda use it as a
+building block for bigger models, e.g. time series. ask me where it's
+not clear how this maps onto the model as described in the paper. the
+reparameterization trick is in this paper too.
+
