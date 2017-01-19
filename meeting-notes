@@ -1,11 +1,46 @@
 meeting notes:
 
+variational bayes overview: https://people.inf.ethz.ch/bkay/talks/Brodersen_2013_03_22.pdf
+
+1/18 time series meeting:
+andreas: hierarchical models
+implement vRNN, deep kalman filter, compare to pauls results
+see perf improvement below
+
+---
+1/11/17 meeting: 
+
+time series - language? 
+building go in adnn/webppl CUDA? stanford cluster or ec2 
+
+research thing? some diff models: deep kalman filter, variational rnn, var autoencoder
+replicate results, implement model and run it on their data
+apply deep kalman  to language 
+SEE: vrnn paper: https://arxiv.org/pdf/1506.02216v6.pdf
+
+RSA stuff: 
+what people do: train literal model, stick RSA on top of it
+what you shoudl do: take RSA, adjust the semantics (meaning) to match the data, hard to do because oyu need to backprop data
+
+---
+Talk with paul:
+explain the nn as functions hes doing
+does it/how does it apply to the swapping out adnn backedn that im doing, will there be webppl code change or just adnn
+loko at slack discussion (couple bugs he fixed)
+explain documentation for samples issue ()
+advice for starting variational inference on time series data
+what other tasks? (see below)
+
 nn is a fn that uses those params, dot product of vector. nn in adnn doesnt have backend in webppl to create params. it needs to keep the state (weight matrices), see tech reqport. `nneval` not in webppl but in tech report - call the funcatin with params
+
+time series: variational inf 
+pauls writing guide programs so posterior can capture correlations. guide part is recurrent.
+implement kalman filter, get smc working
 
 laplace distr: https://github.com/probmods/webppl/issues/672
 issues label in inferences: optimized params (658). function would Take param to say which group of params to optimize. keep track of which params seen 
 
-===
+
 webppl:
 david mckai? info theory and algos
 chris bishop, kevin murphy
@@ -13,10 +48,11 @@ coursera graphical models
 adnn - backend "automatic differentiation"
 implmentation of guides
 distributions are just js objects with md
-laplace distr: https://github.com/probmods/webppl/issues/672 -> reparameterization trick (http://blog.shakirm.com/2015/10/machine-learning-trick-of-the-day-4-reparameterisation-tricks/), restructure so AD flows better. distr implements this trick. instead of sampling from distr, sample from a normal dist, then transform it deterministaclly. base is a fixed dist you sample from, transform transforms it to the one in quesiton
+laplace distr: https://github.com/probmods/webppl/issues/672 -> reparameterization trick, restructure so AD flows better. distr implements this trick. instead of sampling from distr, sample from a normal dist, then transform it deterministaclly. base is a fixed dist you sample from, transform transforms it to the one in quesiton
 issues label in inferences: optimized params (658). function would Take param to say which group of params to optimize. keep track of which params seen when program executed and whichs hould be optimized
 https://github.com/probmods/webppl/issues/530
 look up: metropolis hastings, particle filtering
+
 
 12/7
 
@@ -26,8 +62,9 @@ watch task where two people chat via window, describe actions to someone (pick a
 katherine, robert presented
 relies on deep amortized inference
 
+
+
 smaller projects:
-===
 consult: daniel, paul
 benchmarking methods
 swapping otu tensor backend for somethign more efficient - (best ways tp do that?)
@@ -54,6 +91,29 @@ adnn:
 ad: derivs, functions.js
 nn: activation.js move relu to ad (ad primitives)
 
+meeting 1/16:
+
+fixed control flow -> cache whole graph
+dan learning towards object pool. everytime you rerun you should find the same node you need to use. 
+pool of Tensor nodes and scalar nodes.
+hash that was keyed on dimension of tensor. 
+you want to run a tensor: input dim and output dim is this. give me node. if you dont find exact match, get new one 
+options for clearing the cache and cap it.
+-- when you run oopt in webppl you get a node and thats the root. after you take a gradient step, you want to be able to call on that node something like "release nodes to pool". if it is global you can release all nodes wihtout retraversing the graph (the call stack).
+
+make go completely in js using adnn. diff between adnn and webppl-nn?
+todo:
+make togglable: kind of like torchnn impl. 
+test benchmarks: convolution and matrx tensors should be the big improvements. really big perceptron or convnet 
+cuda
+move nn things ad primitive (see comments in the code, pooling relu conv)
+
+Perf IMprovement! 
+where to spend effort for improvement step up?
+consult: paul, jason, daniel
+profile what resources being used, document.  using node7 and chrome, in the docs.
+gc, tensor backend, or something else
+ if model with no control flow change -> reuse AD graph (same tensor on each iteration)
 
 =====
 time series:
@@ -63,25 +123,6 @@ hmm - discrete
  using autoencoders - deep common filter: filter.  transition functio is deepnet LSTM-like. RNN. recognition model that learns inference. - can write in webppl. will it work?
 
 try running inference on time series models - how well does it work and scale?
+implement kalman filter, get smc working
 consult: paul, ndg
 evolution of a ecosystem, financial modeling, baseball
-
-here's a quick attempt at sketching the basic structure of a time
-series model with a recurrent guide. it certainly won't run (of
-course), but the structure of the model is about right (similar to
-hmm/kalman filter) and i've shown one way you could add a recurrent
-guide to such a model. this will probably only make sense if you are
-comfortable with the variational autoencoder.
-https://gist.github.com/null-a/a749ea49f97c665ae3bb82dbf0476347
-
-pauls writing guide programs so posterior can capture correlations. guide part is recurrent.
-implement kalman filter, get smc working
-variational autoencder:
-https://github.com/null-a/webppl-nn/blob/master/examples/vae.wppl
-The original paper is linked from the code. it's definitely worth
-understanding this, since it's a prototypical example of doing
-"amortized variational inference", and you can kinda use it as a
-building block for bigger models, e.g. time series. ask me where it's
-not clear how this maps onto the model as described in the paper. the
-reparameterization trick is in this paper too.
-
