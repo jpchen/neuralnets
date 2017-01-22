@@ -1,0 +1,277 @@
+// Structured Inference Networks for Nonlinear State Space Models
+// https://arxiv.org/abs/1609.09869
+
+// Requires a recent dev version of webppl. (v0.9.6-170-g84fd4eb or
+// later.)
+
+// Run with:
+// webppl examples/dmm.wppl --require . --require webppl-fs
+
+// Delta between this and the model described in the paper:
+
+// 1. We don't compute any KL terms analytically.
+// 2. We parameterize sigma with our nets, rather than sigma^2.
+// 3. [Fixed] Regularization. Different strength in model? None for
+// guide.
+// 4. No dropout in RNN. (?)
+// 5. Weight init. e.g. ortho for LSTM, what else?
+// 6. [Fixed] Step sizes are probably not comparable because ML people
+// usually divide mini-batch gradients by the batch size, where as we
+// effectively multiple them by len(data)/batchSize.
+// 7. [Fixed] We don't initialize the weight matrix of the linear
+// network (called muNet here) that forms part of the transition
+// function in quite the same way.
+// 8. No KL term annealing yet.
+
+// HELPERS -----------------------------------------------------------
+
+var reduceLeft = function(f, init, arr) {
+  // if (arr.length > 0) {
+  //   return reduceLeft(f, f(init, arr[0]), rest(arr));
+  // } else {
+  //   return init;
+  // }
+  var helper = function(i, init) {
+    if (i < arr.length) {
+      return helper(i + 1, f(init, arr[i]));
+    } else {
+      return init;
+    }
+  };
+  return helper(0, init);
+};
+
+var loadMusic = function(fn, part) {
+  // part should be one of 'train', 'test', 'valid'.
+  var data = JSON.parse(fs.read(fn))[part];
+  return map(function(seq) { return map(Vector, seq); }, data);
+};
+
+// PARAMETERS --------------------------------------------------------
+
+var fullSize = true;
+
+// Appendix C describes the size of the nets for each experiment.
+var xDim = 88;
+var zDim = fullSize ? 100 : 5;
+var transitionDim = fullSize ? 200 : 5;
+var emissionDim = fullSize ? 100 : 5;
+var rnnDim = fullSize ? 600 : 5;
+
+// I'm not sure about the dimension of the generative net. The above
+// is taken from the paper and I assume it's correct, though the code
+// make it look like twice this size is used.
+
+// All net parameters use weight decay.
+var nnparam = paramL2(Math.sqrt(10), true);
+
+// Also see:
+// https://github.com/clinicalml/structuredinference/blob/7fd2e774a8aebe3a946a24a28c4f50d623f64014/parse_args_dkf.py
+
+// MODEL NETS --------------------------------------------------------
+
+// See section 5 for the description of the emission and transition
+// functions.
+
+// "gated transition function"
+var gNet = stack([
+  sigmoid,
+  affine(zDim, 'gNetH2', nnparam),
+  relu,
+  affine(transitionDim, 'gNetH1', nnparam)
+]);
+
+var hNet = stack([
+  affine(zDim, 'hNetH2', nnparam),
+  relu,
+  affine(transitionDim, 'hNetH1', nnparam)
+]);
+
+var muNet = compose(
+  bias('muNetb', nnparam),
+  function(x) {
+    // Initialize to the identity matrix.
+    // (Requires a patched version of webppl.)
+    var w = nnparam({name: 'muNetw', dims: [zDim, zDim], id: true});
+    return T.dot(w, x);
+  });
+
+var sigmaNet = stack([
+  softplus,
+  affine(zDim, 'sigmaNetHid', nnparam),
+  relu
+]);
+
+var zDist = function(zPrev) {
+  if (zPrev === undefined) {
+    return TensorGaussian({mu: 0, sigma: 1, dims: [zDim, 1]});
+  }
+  else {
+    var g = gNet(zPrev);
+    var h = hNet(zPrev);
+    var mu = T.add(
+      T.mul(T.add(T.neg(g), 1), muNet(zPrev)),
+      T.mul(g, h));
+    var sigma = sigmaNet(h);
+    return DiagCovGaussian({mu, sigma});
+  }
+};
+
+// "emission function"
+var emissionNet = stack([
+  sigmoid,
+  affine(xDim, 'emissionNetH3', nnparam),
+  relu,
+  affine(emissionDim, 'emissionNetH2', nnparam),
+  relu,
+  affine(emissionDim, 'emissionNetH1', nnparam)
+]);
+
+var xDist = function(z) {
+  var ps = emissionNet(z);
+  return MultivariateBernoulli({ps});
+};
+
+// GUIDE NETS --------------------------------------------------------
+
+// See section 4.
+
+// This is the DKS variant described in the paper.
+
+// We need the RNN to consume all of the observations (starting with
+// the final observation) before we can output guide parameters for
+// the first latent variable. We do that here, storing the RNN state
+// in the global store for later use.
+
+// To generate guide parameters we need to know where we are in the
+// sequence so we can use the corresponding RNN state generated
+// earlier. For now we track this using the global store.
+
+// NOTE: For lstm we double rnnDim so that hidden state and
+// memory/context both have length rnnDim. This is what i understand
+// the paper to describe.
+
+// TODO: Make this a parameter?
+var rnnInitialState = zeros([rnnDim * 2, 1]);
+var rnn = lstm(rnnDim * 2, 'rnn', nnparam);
+
+var init = function(sequence) {
+  return function() {
+    // Initialize state.
+    globalStore.t = 0;
+    // Run the RNN.
+    globalStore.rnnStates = [];
+    reduce(function(obs, prevState) {
+      // TODO: Would centering the observations help here?
+      var state = rnn(prevState, obs);
+      // Put the new state on the from of the array so that when we're
+      // done, the rnn states are in temporal order. I think
+      // performace of runRNN will have undesirable asymptotics
+      // whether we do this or stick it on the end. Is there a way to
+      // avoid this other than judicious use of mutation?
+      globalStore.rnnStates = [state].concat(globalStore.rnnStates);
+      return state;
+    }, rnnInitialState, sequence);
+  };
+};
+
+// The "combiner function". This is what we've typically called the
+// predict net in daipp.
+
+var z0 = zeros([zDim, 1]);
+
+var embedNet = compose(tanh, affine(rnnDim, 'embedNet', nnparam));
+var muParamNet = affine(zDim, 'muParamNet', nnparam);
+var sigmaParamNet = compose(softplus, affine(zDim, 'sigmaParamNet', nnparam));
+
+// The guide at each time step is conditioned on the previous hidden
+// state (which we pass in here since we it's already to hand in the
+// model) and all future observations. (Via the RNN hidden state,
+// which is available via the global store.).
+
+var zGuide = function(zPrev) {
+  return function() {
+    var t = globalStore.t;
+    var state = globalStore.rnnStates[t];
+    var hCombined = T.mul(T.add(embedNet(zPrev || z0), state), 0.5);
+    var mu = muParamNet(hCombined);
+    var sigma = sigmaParamNet(hCombined);
+    globalStore.t = t + 1;
+    return DiagCovGaussian({mu, sigma});
+  };
+};
+
+// MODEL -------------------------------------------------------------
+
+var model = function(data) {
+  return mapData({data, batchSize: 20}, function(sequence) {
+    guide(init(sequence));
+    return reduceLeft(function(zPrev, obs) {
+      var z = sample(zDist(zPrev), {guide: zGuide(zPrev)});
+      observe(xDist(z), obs);
+      return z;
+    }, undefined, sequence);
+  });
+};
+
+// After optimization we want to sample from the guide, conditioned on
+// some input. To do that we need keep track of all previous z during
+// the `reduceLeft`. `obsFn` does this. We could also use this in
+// `model`, but it's asymptotically slower than just keeping the most
+// recent latent around. (Thought this may not matter much.) I've not
+// decided how best to fix this yet. (My proposed fix for the `map`
+// relies on allocating the output array ahead of this, but this
+// strategy can't work for `reduce` in general, since we don't always
+// return an array. Ugh.)
+
+var obsFn = function(sequence) {
+  guide(init(sequence));
+  return reduceLeft(function(prev, obs) {
+    var zPrev = (prev.length > 0) ? last(prev) : undefined;
+    var z = sample(zDist(zPrev), {guide: zGuide(zPrev)});
+    observe(xDist(z), obs);
+    return prev.concat(z);
+  }, [], sequence);
+};
+
+// samples from q(z|x)
+var posterior = usingGuide(obsFn);
+
+// samples from p(x,z|data)
+var posteriorPredictive = usingGuide(function(length) {
+  return reduceLeft(function(prev, i) {
+    var zPrev = (prev.length > 0) ? last(prev).z : undefined;
+    // TODO: Add option to allow sampling from target rather than
+    // guide here.
+    var z = sample(zDist(zPrev), {guide: constF(zDist(zPrev))});
+    var x = sample(xDist(z), {guide: constF(xDist(z))});
+    return prev.concat({z, x});
+  }, [], _.range(length));
+});
+
+// OPTIMIZATION ------------------------------------------------------
+
+// var obs = map(function(x) { return Vector([x]); }, [0,1,1]);
+// Infer({method: 'forward', guide: 0, samples: 1, model() { model([obs]); }});
+
+var data = loadMusic('../data/music/JSB-Chorales.json', 'train');
+
+Optimize({
+  model() { return model(data); },
+  steps: 25000,
+  optMethod: {adam: {stepSize: 0.001}},
+  showGradNorm: true,
+  logProgress: true,
+  checkpointParams: true,
+  clip: 1
+});
+
+
+// Sample from posterior predictive:
+
+// Load parameters. (Requires patched webppl.)
+// var optParams = deserializeParams(JSON.parse(fs.read('optParams.json')));
+// setParams(optParams);
+
+// var x = _.map(posteriorPredictive(200), _.method('x.toFlatArray'));
+// fs.write('sample.json', JSON.stringify(x));
