@@ -8,6 +8,16 @@ implement vRNN, deep kalman filter, compare to pauls results
 see perf improvement below
 
 ---
+
+Notes talking to paul szerlip 1/31:
+print doesnt work, needs to be implemented
+ideally: one cmake file that custom builds torch inside adnn
+under 10k not faster than js, ffi calls too expensive. use node js addons, use node v8 to call torch C functions, much faster
+torch: library + lua library. binding on the lua layer
+might be worth running on images. 
+no speedup between lua and js, both single threaded. run on different matrix lengths
+problem: referencing and dereferencing: sum elements with all filled 1, see if add up. 
+
 1/11/17 meeting: 
 
 time series - language? 
