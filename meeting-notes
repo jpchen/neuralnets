@@ -8,6 +8,19 @@ implement vRNN, deep kalman filter, compare to pauls results
 see perf improvement below
 
 ---
+meeting with daniel 2/2:
+how to get torch bindings: pass flags to npm install to setup torch bindings, pull everything
+
+caching: look at pytorch
+whenever ad primitive is executed and needs to allocate node, (memory manager in separate file)
+tricky: ideally when operation about to run, check cache is there node in memory that have input tensors x dim and output tensors in y dim? however, cant get output dimension until run (eg transpose takes mxn -> nxm dont know until run). input ones you know it is just the function
+possibilties: 1. define output size, 2. pass output matrix into these functions and write into the matrix
+so in make unary/binary function, opt will in return function), 
+    var node = globalPool.fetchNode(dimensions); 
+    forward (x.x, node.output)
+    /*set other properties*
+    return node
+separate pools for multiprocess thigns
 
 Notes talking to paul szerlip 1/31:
 print doesnt work, needs to be implemented
