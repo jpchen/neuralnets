@@ -1,0 +1,32 @@
+var obs = loadData(’data.json’);
+var guideNet1 = nn.mlp(1, [{nOut: 3, activation: nn.sigmoid}, {nOut: 2}], ’guideNet1’);
+var guideNet2 = nn.mlp(2, [{nOut: 3, activation: nn.sigmoid}, {nOut: 2}], ’guideNet2’);
+var model = function() {
+    var mu_x1 = modelParamScalar(’mu_x1’);
+    var sigma_x1 = softplus(modelParamScalar(’sigma_x1’));
+    var mu_x2 = modelParamScalar(’mu_x2’);
+    var sigma_x2 = softplus(modelParamScalar(’sigma_x2’));
+    var sigma_y = softplus(modelParamScalar(’sigma_y’)); μx1
+        var latents = mapData({data: obs}, function(y) {
+            var nnInput1 = Vector([y]);
+            var nnOutput1 = nnEval(guideNet1, nnInput1);
+            var x1 = sample(Gaussian({mu: mu_x1, sigma: sigma_x1}), {
+                ￼￼￼￼guide: Gaussian({mu: T.get(nnOutput1, 0),
+                    sigma: softplus(T.get(nnOutput1, 1))})
+            });
+            var￼￼￼￼nnInput2 = Vector([y, x1]);
+            var nnOutput2 = nnEval(guideNet2, nnInput2);
+            var x2 = sample(Gaussian({mu: mu_x2, sigma: sigma_x2}), {
+                ￼guide: Gaussian({mu: T.get(nnOutput2, 0),
+                    sigma: softplus(T.get(nnOutput2, 1))})
+            });
+            observe(Gaussian({mu: x1 + x2, sigma: sigma_y}), y);
+            return {x1: x1, x2: x2};
+        });
+    return latents;
+};
+￼
+nnOutput2 = nnEval(guideNet2, nnInput2);
+x2 = sample(Gaussian({mu: mu_x2, sigma: sigma_x2}), {
+    ￼guide: Gaussian({mu: T.get(nnOutput2, 0),
+        sigma: softplus(T.get(nnOutput2, 1))})
