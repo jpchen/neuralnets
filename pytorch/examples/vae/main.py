@@ -4,13 +4,14 @@ import torch
 import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
+import time
 from torch.autograd import Variable
 from torchvision import datasets, transforms
 
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+parser.add_argument('--batch-size', type=int, default=100, metavar='N',
+                    help='input batch size for training (default: 100)')
+parser.add_argument('--epochs', type=int, default=1, metavar='N',
                     help='number of epochs to train (default: 2)')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
@@ -74,9 +75,6 @@ class VAE(nn.Module):
 
 
 model = VAE()
-if args.cuda:
-    model.cuda()
-
 reconstruction_function = nn.BCELoss()
 reconstruction_function.size_average = False
 
@@ -93,31 +91,27 @@ def loss_function(recon_x, x, mu, logvar):
 
     return BCE + KLD
 
-
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
 
 def train(epoch):
     model.train()
     train_loss = 0
     for batch_idx, (data, _) in enumerate(train_loader):
         data = Variable(data)
-        if args.cuda:
-            data = data.cuda()
         optimizer.zero_grad()
         recon_batch, mu, logvar = model(data)
         loss = loss_function(recon_batch, data, mu, logvar)
         loss.backward()
         train_loss += loss.data[0]
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader),
-                loss.data[0] / len(data)))
+#        if batch_idx % args.log_interval == 0:
+#            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+#                epoch, batch_idx * len(data), len(train_loader.dataset),
+#                100. * batch_idx / len(train_loader),
+#                loss.data[0] / len(data)))
 
-    print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / len(train_loader.dataset)))
+#    print('====> Epoch: {} Average loss: {:.4f}'.format(
+#          epoch, train_loss / len(train_loader.dataset)))
 
 
 def test(epoch):
@@ -131,9 +125,12 @@ def test(epoch):
         test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
 
     test_loss /= len(test_loader.dataset)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
+    #print('====> Test set loss: {:.4f}'.format(test_loss))
 
 
+start = time.time()
 for epoch in range(1, args.epochs + 1):
     train(epoch)
-    test(epoch)
+    #test(epoch)
+end = time.time()
+print ("Time: " + str(end-start))
