@@ -103,7 +103,7 @@ with tf.Session() as sess:
     _, cur_loss, summary_str = sess.run([train_step, loss, summary_op], feed_dict=feed_dict)
     summary_writer.add_summary(summary_str, step)
   end = time.time()
-  print (start-end)
+  print (end-start)
 
 #    if step % 50 == 0:
 #      save_path = saver.save(sess, "save/model.ckpt")
