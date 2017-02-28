@@ -2,6 +2,29 @@ meeting notes:
 
 variational bayes overview: https://people.inf.ethz.ch/bkay/talks/Brodersen_2013_03_22.pdf
 
+2/25 meeting wtih dritchie
+DESIGN for ad overloading:
+forward operations should just work, when you lift operations. ad.tensor.add just invokes .add 
+for backwards operations: see if torch has backwards methods implemented?
+wrap the forwards and backwards functions in the torch ad, then just look at it and decide when being called
+end up with:
+separate functions for forwards and backwards. shared functions like lifting, then call into specific one
+OR:
+3 modules. ad, newad, and one that looks at both and constructs a new module to type check
+
+AD module:
+  - file with JS functions and TH functions. it returns named functions
+  - scalar functions
+  - export table of functions
+  - 1 module with a shim function (type check wrapping around it which it should use) - except fromScalars
+  - fromScalars?? (should it be js or torch? how to tell which one? - possible sol: keep separate, just call two diff things (jsfromscalars and THfromScalars))
+  - JS (js tensor functions)
+    - file to impl fwd function. functions take a table of functions, then at runtime do typecheck and dispatch to correct function
+    - file to impl bckwd function
+  - torch (torch tensor functions)
+     - file to impl fwd function (can inherit from JS/fwd)
+    - file to impl bckwd function
+
 1/18 time series meeting:
 andreas: hierarchical models
 implement vRNN, deep kalman filter, compare to pauls results
