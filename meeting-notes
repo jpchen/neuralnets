@@ -1,6 +1,11 @@
 meeting notes:
 
 variational bayes overview: https://people.inf.ethz.ch/bkay/talks/Brodersen_2013_03_22.pdf
+see notes from meeting wtih dan about pulling torchjs and fixing it.
+why is it not buildilng in linux?
+meet wtih erin
+fixed all the bugs with adnn. using nicorrect THTensor though?
+uber review
 
 2/25 meeting wtih dritchie
 DESIGN for ad overloading:
