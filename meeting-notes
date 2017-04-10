@@ -7,6 +7,17 @@ meet wtih erin
 fixed all the bugs with adnn. using nicorrect THTensor though?
 uber review
 
+GANs:
+most work on unsupervised models of deep learning (like VAE) does ont have the exo form. but GANs, take random things then determinstically push it through the network, then determinstically bp. so GANs support counterfactuals. right now mostly used for images. 
+if we do GAN training will it a=model the right cf ie know the right causality?? noah thinks no beause youre training on strictly correlational stuff
+otherwise, provide some cf evidence and force it to learn some more causal structure of the model
+eg: take a domain where there is rich causal strucutre. do UL, make it learn cf structure
+NEED:
+toy domain, GAN training,
+to do the obs (image) we need to infer latent noise (can we do by opt?), make a new image (gaussian centered on the old one), change it via cf, read off the cf result. so take pixel, infer latent noise, change the pixel by clamping it to something else, bp, update pixel value, then run it forward
+**if GANs dont support causal structure, then were introducing the cf to allow them to learn causal structure
+make a toy domaint o explore this? eg chemicals in a atest tube, so imagine that there exists causal structure between teh  chemicals coninuous variable(bayes net). what does the gan learn? can it reconstruct the joint dist? did it learn the causal structure in the bayes net? (we know what the  causal strucutre would be)
+
 2/25 meeting wtih dritchie
 DESIGN for ad overloading:
 forward operations should just work, when you lift operations. ad.tensor.add just invokes .add 
